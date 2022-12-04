@@ -25,7 +25,7 @@ class Chef:
         self.recipename = re.match("(.*?)\.\n\n", self.script)
         self.script = re.sub(self.recipename.group(), "", self.script)
         if (self.recipename == None):
-            print "Invalid recipe name"
+            print("Invalid recipe name")
             sys.exit(-1)
         # Match a recipe name, first line of script, must end with a dot and two newlines.
         # Replace this with nothing to allow for further matching.
@@ -38,7 +38,7 @@ class Chef:
         self.ingr = re.match("Ingredients\.\n", self.script)
         # Find ingredient list.
         if self.ingr == None:
-            print "Ingredient list not found"
+            print("Ingredient list not found")
             sys.exit(-1)
         self.script = re.sub(self.ingr.group(), "", self.script, 1)
         # Again, replace with nothing.
@@ -66,6 +66,7 @@ class Chef:
         # Find the method. This is where things get intresting.
         self.script = self.script.lstrip()
         self.meth = re.match("Method\.\n", self.script)
+        print()
         self.script = re.sub(self.meth.group(), "", self.script, 1)
         self.method = re.match("(.*?)\n\n", self.script, re.DOTALL)
         # Match anything up to two newlines.
@@ -81,17 +82,17 @@ class Chef:
     def ambigcheck(self, text, dish=False):
         # A mixing bowl may not be used without a number if other mixing bowls use numbers. Same goes for baking dishes.
         if re.match("the (1st|2nd|3rd|[0-9]+th) mixing bowl", text) != None:
-            print "Ambigious mixing bowl"
+            print("Ambigious mixing bowl")
             sys.exit(-1)
         if dish == True:
             if re.match("the (1st|2nd|3rd|[0-9]+th) baking dish", text) != None:
-                print "Ambigious baking dish"
+                print("Ambigious baking dish")
                 sys.exit(-1)
 
     def valuecheck(self, ingredient):
         # Ingredients may be defined without a value, but not used without one.
         if self.ingredientlist[ingredient][0] == None:
-            print "Cooking time error: tried to access ingredient", ingredient + ", which is not ready for use."
+            print("Cooking time error: tried to access ingredient", ingredient + ", which is not ready for use.")
             sys.exit()
 
     def put(self, mixingbowl, value):
@@ -177,7 +178,7 @@ class Chef:
         def stripwhite(x):
             return x.lstrip()
 
-        excode = map(stripwhite, excode)
+        excode = list(map(stripwhite, excode))
         excode[-1] = excode[-1][:-1]
         for ex in excode:
             # print ex, self.mixingbowls[0] # , self.ingredientlist
@@ -234,33 +235,33 @@ class Chef:
                 if clean.group(1) == None:
                     self.mixingbowls[0] = []
                 else:
-                    if self.mixingbowls.has_key(clean.group(1)[:-2]):
+                    if clean.group(1)[:-2] in self.mixingbowls:
                         self.mixingbowls[clean.group(1)[:-2]] = []
                     else:
                         existslater = re.match(clean.group(1) + " mixing bowl", text)
                         if existslater == None:
-                            print "Warning: Unknown mixingbowl", clean.group(1)
+                            print("Warning: Unknown mixingbowl", clean.group(1))
                         else:
-                            print "Warning: Tried to clean mixingbowl", clean.group(1), "before putting anything in it!"
+                            print("Warning: Tried to clean mixingbowl", clean.group(1), "before putting anything in it!")
                 continue
             mix = re.search("Mix the (1st|2nd|3rd|[0-9]+th)? ?mixing bowl well", ex)
             if mix != None:
                 if mix.group(1) == None:
                     random.shuffle(self.mixingbowls[0])
                 else:
-                    if self.mixingbowls.has_key(mix.group(1)[:-2]):
+                    if mix.group(1)[:-2] in self.mixingbowls:
                         random.shuffle(self.mixingbowls[clean.mix(1)[:-2]])
                     else:
                         existslater = re.match(clean.mix(1) + " mixing bowl", text)
                         if existslater == None:
-                            print "Warning: Unknown mixing bowl", mix.group(1)
+                            print("Warning: Unknown mixing bowl", mix.group(1))
                         else:
-                            print "Warning: Tried to mix mixing bowl", mix.group(1), "before putting anything in it!"
+                            print("Warning: Tried to mix mixing bowl", mix.group(1), "before putting anything in it!")
                 continue
             fridge = re.search("Take ([a-zA-Z]+) from refrigerator", ex)
             if (fridge != None):
-                if self.ingredientlist.has_key(fridge.group(1)):
-                    value = int(raw_input(fridge.group(1) + ": "))
+                if fridge.group(1) in self.ingredientlist:
+                    value = int(input(fridge.group(1) + ": "))
                     if self.ingredientlist[fridge.group(1)][1] == "liquid":
                         self.ingredientlist[fridge.group(1)][0] = chr(value)
                     else:
@@ -279,7 +280,7 @@ class Chef:
                 else:
                     key2 = int(pour.group(2)) - 1
                 self.ambigcheck(text, True)
-                if not self.bakingdishes.has_key(key2):
+                if key2 not in self.bakingdishes:
                     self.bakingdishes[key2] = []
                 self.bakingdishes[key2].extend(self.mixingbowls[key])
                 continue
@@ -296,8 +297,8 @@ class Chef:
                 def dryvalues(x):
                     return x[0]
 
-                dry = filter(isdry, self.ingredientlist.values())
-                dry = map(dryvalues, dry)
+                dry = list(filter(isdry, list(self.ingredientlist.values())))
+                dry = list(map(dryvalues, dry))
                 self.put(adddry.group(1), [sum(dry), "dry", "sumofall"], text)
             auxiliary = re.match("Serve with ([a-zA-Z ]+)", ex)
             if auxiliary != None:
@@ -315,7 +316,7 @@ class Chef:
             if verb != None:
                 if "until" in verb.group():
                     continue
-                if not self.ingredientlist.has_key(verb.group(2)):
+                if verb.group(2) not in self.ingredientlist:
                     continue
                 if self.ingredientlist[verb.group(2)][0] == 0:
                     continue
@@ -357,13 +358,13 @@ class Chef:
 
 
 if __name__ == "__main__":
-    print "PyChef v0.0.1 by sp3tt. This program is licensed under the GNU GPL."
-    print "Small bugs fixed by Moshewag and Yaakov1"
+    print("PyChef v0.0.1 by sp3tt. This program is licensed under the GNU GPL.")
+    print("Small bugs fixed by Moshewag and Yaakov1")
     try:
         f = open(sys.argv[1], "r")
-    except IOError, text:
-        print text
+    except IOError as text:
+        print(text)
         sys.exit(-1)
     main = Chef(f.read())
-    print main.parse()
+    print(main.parse())
     end = datetime.datetime.now()
